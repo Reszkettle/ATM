@@ -1,10 +1,10 @@
 package edu.iis.mto.testreactor.atm;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.*;
 
 
+import edu.iis.mto.testreactor.atm.bank.AccountException;
 import edu.iis.mto.testreactor.atm.bank.AuthorizationException;
 import edu.iis.mto.testreactor.atm.bank.AuthorizationToken;
 import edu.iis.mto.testreactor.atm.bank.Bank;
@@ -110,4 +110,28 @@ class ATMachineTest {
         Assertions.assertEquals(expectedErrorCode, actualErrorCode);
     }
 
+    @Test
+    void shouldThrowExceptionWithNoFundsOnAccountErrorCodeWhenClientHasTooSmallBalance() throws AuthorizationException, AccountException {
+        // given
+        final int sampleAvailableCountOfBanknotes = 10;
+        Money tooBigWithdrawAmount = new Money(20, DEFAULT_CURRENCY);
+        atm.setDeposit(moneyDeposit);
+        when(moneyDeposit.getCurrency()).thenReturn(DEFAULT_CURRENCY);
+        when(bank.autorize(any(String.class), any(String.class))).thenReturn(DEFAULT_TOKEN);
+        when(moneyDeposit.getAvailableCountOf(any(Banknote.class))).thenReturn(sampleAvailableCountOfBanknotes);
+        doThrow(new AccountException()).when(bank).charge(any(AuthorizationToken.class), any(Money.class));
+        ErrorCode expectedErrorCode = ErrorCode.NO_FUNDS_ON_ACCOUNT;
+
+        // when
+        ErrorCode actualErrorCode = null;
+        try {
+            atm.withdraw(DEFAULT_PIN_CODE, DEFAULT_CARD, tooBigWithdrawAmount);
+            Assertions.fail("Should throw ATMOperationException when client's balance is too small");
+        } catch (ATMOperationException e) {
+            actualErrorCode = e.getErrorCode();
+        }
+
+        // then
+        Assertions.assertEquals(expectedErrorCode, actualErrorCode);
+    }
 }
