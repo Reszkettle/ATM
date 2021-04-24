@@ -183,4 +183,19 @@ class ATMachineTest {
         // then
         Assertions.assertEquals(expectedWithdrawal, actualWithdrawal);
     }
+
+    @Test
+    void shouldInvokeChargeMethodOnceWhenPerformingBankTransaction() throws AuthorizationException, ATMOperationException, AccountException {
+        // given
+        Money amount = Money.ZERO;
+        atm.setDeposit(moneyDeposit);
+        when(moneyDeposit.getCurrency()).thenReturn(DEFAULT_CURRENCY);
+        when(bank.autorize(any(String.class), any(String.class))).thenReturn(DEFAULT_TOKEN);
+
+        // when
+        atm.withdraw(DEFAULT_PIN_CODE, DEFAULT_CARD, amount);
+
+        // then
+        verify(bank, times(1)).charge(DEFAULT_TOKEN, amount);
+    }
 }
