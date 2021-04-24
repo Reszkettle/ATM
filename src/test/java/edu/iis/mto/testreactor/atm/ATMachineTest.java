@@ -3,7 +3,6 @@ package edu.iis.mto.testreactor.atm;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.*;
 
-
 import edu.iis.mto.testreactor.atm.bank.AccountException;
 import edu.iis.mto.testreactor.atm.bank.AuthorizationException;
 import edu.iis.mto.testreactor.atm.bank.AuthorizationToken;
@@ -29,10 +28,10 @@ class ATMachineTest {
     private static final Card DEFAULT_CARD = Card.create(DEFAULT_CARD_NUMBER);
     private static final AuthorizationToken DEFAULT_TOKEN = AuthorizationToken.create("1234");
     private static final List<Banknote> DEFAULT_CURRENCY_AVAILABLE_BANKNOTES = Banknote.getDescFor(DEFAULT_CURRENCY);
-    private static final List<Integer> DEFAULT_CURRENCY_AVAILABLE_DENOMINATIONS = DEFAULT_CURRENCY_AVAILABLE_BANKNOTES
-                                                                                          .stream()
-                                                                                          .map(Banknote::getDenomination)
-                                                                                          .collect(Collectors.toList());
+    private static final List<Integer> DEFAULT_CURRENCY_AVAILABLE_DENOMINATIONS = DEFAULT_CURRENCY_AVAILABLE_BANKNOTES.stream()
+                                                                                                                      .map(Banknote::getDenomination)
+                                                                                                                      .collect(
+                                                                                                                              Collectors.toList());
 
     @Mock
     private Bank bank;
@@ -123,7 +122,8 @@ class ATMachineTest {
         when(moneyDeposit.getCurrency()).thenReturn(DEFAULT_CURRENCY);
         when(bank.autorize(any(String.class), any(String.class))).thenReturn(DEFAULT_TOKEN);
         when(moneyDeposit.getAvailableCountOf(any(Banknote.class))).thenReturn(sampleAvailableCountOfBanknotes);
-        doThrow(new AccountException()).when(bank).charge(any(AuthorizationToken.class), any(Money.class));
+        doThrow(new AccountException()).when(bank)
+                                       .charge(any(AuthorizationToken.class), any(Money.class));
         ErrorCode expectedErrorCode = ErrorCode.NO_FUNDS_ON_ACCOUNT;
 
         // when
@@ -149,8 +149,10 @@ class ATMachineTest {
         when(moneyDeposit.getCurrency()).thenReturn(DEFAULT_CURRENCY);
         when(bank.autorize(any(String.class), any(String.class))).thenReturn(DEFAULT_TOKEN);
         when(moneyDeposit.getAvailableCountOf(any(Banknote.class))).thenReturn(sampleCountOfEveryPLNBanknote);
-        doNothing().when(bank).charge(any(AuthorizationToken.class), any(Money.class));
-        doNothing().when(moneyDeposit).release(any(BanknotesPack.class));
+        doNothing().when(bank)
+                   .charge(any(AuthorizationToken.class), any(Money.class));
+        doNothing().when(moneyDeposit)
+                   .release(any(BanknotesPack.class));
         List<BanknotesPack> expectedBanknotesPacks = DEFAULT_CURRENCY_AVAILABLE_BANKNOTES.stream()
                                                                                          .map(b -> BanknotesPack.create(1, b))
                                                                                          .collect(Collectors.toList());
@@ -164,12 +166,14 @@ class ATMachineTest {
     }
 
     @Test
-    void shouldReturnEmptyWithdrawalWhenRequestedWithdrawAmountIsZero() throws AuthorizationException, AccountException, ATMOperationException {
+    void shouldReturnEmptyWithdrawalWhenRequestedWithdrawAmountIsZero()
+            throws AuthorizationException, AccountException, ATMOperationException {
         // given
         Money zeroAmount = Money.ZERO;
         when(moneyDeposit.getCurrency()).thenReturn(DEFAULT_CURRENCY);
         when(bank.autorize(any(String.class), any(String.class))).thenReturn(DEFAULT_TOKEN);
-        doNothing().when(bank).charge(any(AuthorizationToken.class), any(Money.class));
+        doNothing().when(bank)
+                   .charge(any(AuthorizationToken.class), any(Money.class));
         Withdrawal expectedWithdrawal = Withdrawal.create(List.of());
 
         // when
@@ -180,7 +184,8 @@ class ATMachineTest {
     }
 
     @Test
-    void shouldInvokeChargeMethodOnceWhenPerformingBankTransaction() throws AuthorizationException, ATMOperationException, AccountException {
+    void shouldInvokeChargeMethodOnceWhenPerformingBankTransaction()
+            throws AuthorizationException, ATMOperationException, AccountException {
         // given
         Money amount = Money.ZERO;
         when(moneyDeposit.getCurrency()).thenReturn(DEFAULT_CURRENCY);
