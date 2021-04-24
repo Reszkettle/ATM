@@ -1,6 +1,7 @@
 package edu.iis.mto.testreactor.atm;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.mockito.Mockito.when;
 
 import edu.iis.mto.testreactor.atm.bank.Bank;
 import org.hamcrest.Matchers;
@@ -44,6 +45,8 @@ class ATMachineTest {
         // given
         Money invalidAmount = new Money(20, Currency.getInstance("EUR"));
         ErrorCode expectedErrorCode = ErrorCode.WRONG_CURRENCY;
+        atm.setDeposit(moneyDeposit);
+        when(moneyDeposit.getCurrency()).thenReturn(DEFAULT_CURRENCY);
 
         // when
         ErrorCode actualErrorCode = null;
