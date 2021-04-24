@@ -2,7 +2,10 @@ package edu.iis.mto.testreactor.atm;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.any;
 
+
+import edu.iis.mto.testreactor.atm.bank.AuthorizationException;
 import edu.iis.mto.testreactor.atm.bank.Bank;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -53,6 +56,28 @@ class ATMachineTest {
         try {
             atm.withdraw(DEFAULT_PIN_CODE, DEFAULT_CARD, invalidAmount);
             Assertions.fail("Should throw ATMOperationException when amount is invalid");
+        } catch (ATMOperationException e) {
+            actualErrorCode = e.getErrorCode();
+        }
+
+        // then
+        Assertions.assertEquals(expectedErrorCode, actualErrorCode);
+    }
+
+    @Test
+    void shouldThrowExceptionWithAuthorizationErrorCodeWhenAuthorizationFailed() throws AuthorizationException {
+        // given
+        Money amount = new Money(20, DEFAULT_CURRENCY);
+        atm.setDeposit(moneyDeposit);
+        when(moneyDeposit.getCurrency()).thenReturn(DEFAULT_CURRENCY);
+        when(bank.autorize(any(String.class), any(String.class))).thenThrow(new AuthorizationException());
+        ErrorCode expectedErrorCode = ErrorCode.AHTHORIZATION;
+
+        // when
+        ErrorCode actualErrorCode = null;
+        try {
+            atm.withdraw(DEFAULT_PIN_CODE, DEFAULT_CARD, amount);
+            Assertions.fail("Should throw ATMOperationException when client is not authorized");
         } catch (ATMOperationException e) {
             actualErrorCode = e.getErrorCode();
         }
