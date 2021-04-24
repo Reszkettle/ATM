@@ -166,4 +166,21 @@ class ATMachineTest {
         // then
         Assertions.assertEquals(expectedWithdrawal, actualWithdrawal);
     }
+
+    @Test
+    void shouldReturnEmptyWithdrawalWhenRequestedWithdrawAmountIsZero() throws AuthorizationException, AccountException, ATMOperationException {
+        // given
+        Money zeroAmount = Money.ZERO;
+        atm.setDeposit(moneyDeposit);
+        when(moneyDeposit.getCurrency()).thenReturn(DEFAULT_CURRENCY);
+        when(bank.autorize(any(String.class), any(String.class))).thenReturn(DEFAULT_TOKEN);
+        doNothing().when(bank).charge(any(AuthorizationToken.class), any(Money.class));
+        Withdrawal expectedWithdrawal = Withdrawal.create(List.of());
+
+        // when
+        Withdrawal actualWithdrawal = atm.withdraw(DEFAULT_PIN_CODE, DEFAULT_CARD, zeroAmount);
+
+        // then
+        Assertions.assertEquals(expectedWithdrawal, actualWithdrawal);
+    }
 }
