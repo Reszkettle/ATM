@@ -6,6 +6,7 @@ import static org.mockito.Mockito.any;
 
 
 import edu.iis.mto.testreactor.atm.bank.AuthorizationException;
+import edu.iis.mto.testreactor.atm.bank.AuthorizationToken;
 import edu.iis.mto.testreactor.atm.bank.Bank;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -24,6 +25,7 @@ class ATMachineTest {
     private static final String DEFAULT_CARD_NUMBER = "5123456789104444";
     private static final PinCode DEFAULT_PIN_CODE = PinCode.createPIN(1, 2, 3, 4);
     private static final Card DEFAULT_CARD = Card.create(DEFAULT_CARD_NUMBER);
+    private static final AuthorizationToken DEFAULT_TOKEN = AuthorizationToken.create("1234");
 
     @Mock
     private Bank bank;
@@ -78,6 +80,28 @@ class ATMachineTest {
         try {
             atm.withdraw(DEFAULT_PIN_CODE, DEFAULT_CARD, amount);
             Assertions.fail("Should throw ATMOperationException when client is not authorized");
+        } catch (ATMOperationException e) {
+            actualErrorCode = e.getErrorCode();
+        }
+
+        // then
+        Assertions.assertEquals(expectedErrorCode, actualErrorCode);
+    }
+
+    @Test
+    void shouldThrowExceptionWithWrongAmountErrorCodeWhenAmountIsInvalid() throws AuthorizationException {
+        // given
+        Money invalidAmount = new Money(1, DEFAULT_CURRENCY);
+        atm.setDeposit(moneyDeposit);
+        when(moneyDeposit.getCurrency()).thenReturn(DEFAULT_CURRENCY);
+        when(bank.autorize(any(String.class), any(String.class))).thenReturn(DEFAULT_TOKEN);
+        ErrorCode expectedErrorCode = ErrorCode.WRONG_AMOUNT;
+
+        // when
+        ErrorCode actualErrorCode = null;
+        try {
+            atm.withdraw(DEFAULT_PIN_CODE, DEFAULT_CARD, invalidAmount);
+            Assertions.fail("Should throw ATMOperationException when client's amount value is invalid");
         } catch (ATMOperationException e) {
             actualErrorCode = e.getErrorCode();
         }
