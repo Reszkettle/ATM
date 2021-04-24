@@ -17,6 +17,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Currency;
+import java.util.List;
 
 @ExtendWith(MockitoExtension.class)
 class ATMachineTest {
@@ -133,5 +134,31 @@ class ATMachineTest {
 
         // then
         Assertions.assertEquals(expectedErrorCode, actualErrorCode);
+    }
+
+    @Test
+    void shouldReturnExpectedWithdrawal() throws AuthorizationException, AccountException, ATMOperationException {
+        // given
+        final int sampleCountOfEveryPLNBanknote = 1;
+        Money amount = new Money(880, DEFAULT_CURRENCY);
+        atm.setDeposit(moneyDeposit);
+        when(moneyDeposit.getCurrency()).thenReturn(DEFAULT_CURRENCY);
+        when(bank.autorize(any(String.class), any(String.class))).thenReturn(DEFAULT_TOKEN);
+        when(moneyDeposit.getAvailableCountOf(any(Banknote.class))).thenReturn(sampleCountOfEveryPLNBanknote);
+        doNothing().when(bank).charge(any(AuthorizationToken.class), any(Money.class));
+        doNothing().when(moneyDeposit).release(any(BanknotesPack.class));
+        List<BanknotesPack> expectedBanknotesPacks = List.of(BanknotesPack.create(1, Banknote.PL_500),
+                                                             BanknotesPack.create(1, Banknote.PL_200),
+                                                             BanknotesPack.create(1, Banknote.PL_100),
+                                                             BanknotesPack.create(1, Banknote.PL_50),
+                                                             BanknotesPack.create(1, Banknote.PL_20),
+                                                             BanknotesPack.create(1, Banknote.PL_10));
+        Withdrawal expectedWithdrawal = Withdrawal.create(expectedBanknotesPacks);
+
+        // when
+        Withdrawal actualWithdrawal = atm.withdraw(DEFAULT_PIN_CODE, DEFAULT_CARD, amount);
+
+        // then
+        Assertions.assertEquals(expectedWithdrawal, actualWithdrawal);
     }
 }
