@@ -18,6 +18,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Currency;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @ExtendWith(MockitoExtension.class)
 class ATMachineTest {
@@ -27,6 +28,11 @@ class ATMachineTest {
     private static final PinCode DEFAULT_PIN_CODE = PinCode.createPIN(1, 2, 3, 4);
     private static final Card DEFAULT_CARD = Card.create(DEFAULT_CARD_NUMBER);
     private static final AuthorizationToken DEFAULT_TOKEN = AuthorizationToken.create("1234");
+    private static final List<Banknote> DEFAULT_CURRENCY_AVAILABLE_BANKNOTES = Banknote.getDescFor(DEFAULT_CURRENCY);
+    private static final List<Integer> DEFAULT_CURRENCY_AVAILABLE_DENOMINATIONS = DEFAULT_CURRENCY_AVAILABLE_BANKNOTES
+                                                                                          .stream()
+                                                                                          .map(Banknote::getDenomination)
+                                                                                          .collect(Collectors.toList());
 
     @Mock
     private Bank bank;
@@ -140,19 +146,18 @@ class ATMachineTest {
     void shouldReturnExpectedWithdrawal() throws AuthorizationException, AccountException, ATMOperationException {
         // given
         final int sampleCountOfEveryPLNBanknote = 1;
-        Money amount = new Money(880, DEFAULT_CURRENCY);
+        final int sumOfAllAvailableDenominations = DEFAULT_CURRENCY_AVAILABLE_DENOMINATIONS.stream()
+                                                                                           .reduce(0, Integer::sum);
+        Money amount = new Money(sumOfAllAvailableDenominations, DEFAULT_CURRENCY);
         atm.setDeposit(moneyDeposit);
         when(moneyDeposit.getCurrency()).thenReturn(DEFAULT_CURRENCY);
         when(bank.autorize(any(String.class), any(String.class))).thenReturn(DEFAULT_TOKEN);
         when(moneyDeposit.getAvailableCountOf(any(Banknote.class))).thenReturn(sampleCountOfEveryPLNBanknote);
         doNothing().when(bank).charge(any(AuthorizationToken.class), any(Money.class));
         doNothing().when(moneyDeposit).release(any(BanknotesPack.class));
-        List<BanknotesPack> expectedBanknotesPacks = List.of(BanknotesPack.create(1, Banknote.PL_500),
-                                                             BanknotesPack.create(1, Banknote.PL_200),
-                                                             BanknotesPack.create(1, Banknote.PL_100),
-                                                             BanknotesPack.create(1, Banknote.PL_50),
-                                                             BanknotesPack.create(1, Banknote.PL_20),
-                                                             BanknotesPack.create(1, Banknote.PL_10));
+        List<BanknotesPack> expectedBanknotesPacks = DEFAULT_CURRENCY_AVAILABLE_BANKNOTES.stream()
+                                                                                         .map(b -> BanknotesPack.create(1, b))
+                                                                                         .collect(Collectors.toList());
         Withdrawal expectedWithdrawal = Withdrawal.create(expectedBanknotesPacks);
 
         // when
