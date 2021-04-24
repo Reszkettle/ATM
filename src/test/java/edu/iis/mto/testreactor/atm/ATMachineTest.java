@@ -45,6 +45,7 @@ class ATMachineTest {
     @BeforeEach
     void setUp() {
         atm = new ATMachine(bank, DEFAULT_CURRENCY);
+        atm.setDeposit(moneyDeposit);
     }
 
     @Test
@@ -57,7 +58,6 @@ class ATMachineTest {
         // given
         Money invalidAmount = new Money(20, Currency.getInstance("EUR"));
         ErrorCode expectedErrorCode = ErrorCode.WRONG_CURRENCY;
-        atm.setDeposit(moneyDeposit);
         when(moneyDeposit.getCurrency()).thenReturn(DEFAULT_CURRENCY);
 
         // when
@@ -77,7 +77,6 @@ class ATMachineTest {
     void shouldThrowExceptionWithAuthorizationErrorCodeWhenAuthorizationFailed() throws AuthorizationException {
         // given
         Money amount = new Money(20, DEFAULT_CURRENCY);
-        atm.setDeposit(moneyDeposit);
         when(moneyDeposit.getCurrency()).thenReturn(DEFAULT_CURRENCY);
         when(bank.autorize(any(String.class), any(String.class))).thenThrow(new AuthorizationException());
         ErrorCode expectedErrorCode = ErrorCode.AHTHORIZATION;
@@ -99,7 +98,6 @@ class ATMachineTest {
     void shouldThrowExceptionWithWrongAmountErrorCodeWhenAmountIsInvalid() throws AuthorizationException {
         // given
         Money invalidAmount = new Money(1, DEFAULT_CURRENCY);
-        atm.setDeposit(moneyDeposit);
         when(moneyDeposit.getCurrency()).thenReturn(DEFAULT_CURRENCY);
         when(bank.autorize(any(String.class), any(String.class))).thenReturn(DEFAULT_TOKEN);
         ErrorCode expectedErrorCode = ErrorCode.WRONG_AMOUNT;
@@ -122,7 +120,6 @@ class ATMachineTest {
         // given
         final int sampleAvailableCountOfBanknotes = 10;
         Money tooBigWithdrawAmount = new Money(20, DEFAULT_CURRENCY);
-        atm.setDeposit(moneyDeposit);
         when(moneyDeposit.getCurrency()).thenReturn(DEFAULT_CURRENCY);
         when(bank.autorize(any(String.class), any(String.class))).thenReturn(DEFAULT_TOKEN);
         when(moneyDeposit.getAvailableCountOf(any(Banknote.class))).thenReturn(sampleAvailableCountOfBanknotes);
@@ -149,7 +146,6 @@ class ATMachineTest {
         final int sumOfAllAvailableDenominations = DEFAULT_CURRENCY_AVAILABLE_DENOMINATIONS.stream()
                                                                                            .reduce(0, Integer::sum);
         Money amount = new Money(sumOfAllAvailableDenominations, DEFAULT_CURRENCY);
-        atm.setDeposit(moneyDeposit);
         when(moneyDeposit.getCurrency()).thenReturn(DEFAULT_CURRENCY);
         when(bank.autorize(any(String.class), any(String.class))).thenReturn(DEFAULT_TOKEN);
         when(moneyDeposit.getAvailableCountOf(any(Banknote.class))).thenReturn(sampleCountOfEveryPLNBanknote);
@@ -171,7 +167,6 @@ class ATMachineTest {
     void shouldReturnEmptyWithdrawalWhenRequestedWithdrawAmountIsZero() throws AuthorizationException, AccountException, ATMOperationException {
         // given
         Money zeroAmount = Money.ZERO;
-        atm.setDeposit(moneyDeposit);
         when(moneyDeposit.getCurrency()).thenReturn(DEFAULT_CURRENCY);
         when(bank.autorize(any(String.class), any(String.class))).thenReturn(DEFAULT_TOKEN);
         doNothing().when(bank).charge(any(AuthorizationToken.class), any(Money.class));
@@ -188,7 +183,6 @@ class ATMachineTest {
     void shouldInvokeChargeMethodOnceWhenPerformingBankTransaction() throws AuthorizationException, ATMOperationException, AccountException {
         // given
         Money amount = Money.ZERO;
-        atm.setDeposit(moneyDeposit);
         when(moneyDeposit.getCurrency()).thenReturn(DEFAULT_CURRENCY);
         when(bank.autorize(any(String.class), any(String.class))).thenReturn(DEFAULT_TOKEN);
 
@@ -197,5 +191,36 @@ class ATMachineTest {
 
         // then
         verify(bank, times(1)).charge(DEFAULT_TOKEN, amount);
+    }
+
+    @Test
+    void shouldInvokeAuthorizeMethodOnceDuringClientAuthorization() throws AuthorizationException, ATMOperationException {
+        // given
+        Money amount = Money.ZERO;
+        when(moneyDeposit.getCurrency()).thenReturn(DEFAULT_CURRENCY);
+
+        // when
+        atm.withdraw(DEFAULT_PIN_CODE, DEFAULT_CARD, amount);
+
+        // then
+        verify(bank, times(1)).autorize(DEFAULT_PIN_CODE.getPIN(), DEFAULT_CARD_NUMBER);
+    }
+
+    @Test
+    void shouldInvokeGetAvailableCountOfForEverySingleBanknote() throws ATMOperationException, AuthorizationException {
+        // given
+        final int sumOfAllAvailableDenominations = DEFAULT_CURRENCY_AVAILABLE_DENOMINATIONS.stream()
+                                                                                           .reduce(0, Integer::sum);
+        final int uniqueBanknotesCount = DEFAULT_CURRENCY_AVAILABLE_BANKNOTES.size();
+        Money amount = new Money(sumOfAllAvailableDenominations, DEFAULT_CURRENCY);
+        when(moneyDeposit.getCurrency()).thenReturn(DEFAULT_CURRENCY);
+        when(bank.autorize(any(String.class), any(String.class))).thenReturn(DEFAULT_TOKEN);
+        when(moneyDeposit.getAvailableCountOf(any(Banknote.class))).thenReturn(1);
+
+        // when
+        atm.withdraw(DEFAULT_PIN_CODE, DEFAULT_CARD, amount);
+
+        // then
+        verify(moneyDeposit, times(uniqueBanknotesCount)).getAvailableCountOf(any(Banknote.class));
     }
 }
